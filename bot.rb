@@ -30,7 +30,7 @@ end
 # /list-private [filter]
 #
 # Lists all private channels that the bot has access to, allowing users to request access to them.
-bot.register_application_command(:"list-private", "List private channels you can join", server_id: DISCORD_SERVER_ID) do |cmd|
+bot.register_application_command(:"list-private", "List private/protected channels you can join", server_id: DISCORD_SERVER_ID) do |cmd|
   cmd.string("filter", "An optional filter to narrow the results", required: false)
 end
 
@@ -56,10 +56,14 @@ bot.application_command(:"list-private") do |event|
     channels = channels.select { |channel| channel.name.downcase.include?(filter) || channel.topic.downcase.include?(filter) }
   end
 
+  channels = channels.select do |channel|
+    channel.permission_overwrites.values.none? { |overwrite| overwrite.type == :member && overwrite.allow == 1024 && overwrite.id == event.user.id }
+  end
+
   if channels.empty?
-    event.respond(content: "Sorry! I couldn't find any private channels that match your criteria. Try again with a different filter.", ephemeral: true)
+    event.respond(content: "Sorry! I couldn't find any unjoined protected channels that match your criteria. Try again with a different filter.", ephemeral: true)
   else
-    event.respond(content: "These channels are locked, private identity channels to give marginalized folx a safe space. We don't police identities! If you request to join an identity channel that applies to you, we're not going to ask you to prove it — we just invite you.", ephemeral: true)
+    event.respond(content: "These channels are locked, protected channels to give marginalized folks a safe space. We don't police identities! If you request to join an identity channel that applies to you, we're not going to ask you to prove it — we just invite you.", ephemeral: true)
 
     channels.each do |channel|
       member_count = channel.permission_overwrites.values.count { |overwrite| overwrite.type == :member }
@@ -73,39 +77,38 @@ bot.application_command(:"list-private") do |event|
   end
 end
 
+# The button handler for requesting access to protected channels.
 bot.button(custom_id: /^join_private:/) do |event|
   channel_id = event.interaction.button.custom_id.split(":").last.to_i
   channel_response = Discordrb::API::Channel.resolve(bot.token, channel_id)
   channel_data = JSON.parse(channel_response)
   channel = Discordrb::Channel.new(channel_data, event.bot, event.server)
 
-  event.bot.send_message(channel.id, "#{event.user.mention} would like to join this channel! If this community is okay with that, please `/invite` them.")
+  request = "#{event.user.mention} would like to join this channel! Is this community okay with that?"
 
-  event.respond(content: "I've sent an invite request to `##{channel.name}` on your behalf. Please wait while that community reviews your request!", ephemeral: true)
-end
-
-# /invite <user>
-#
-# Allows members of private identity channels to invite users without needing an admin or moderator.
-bot.register_application_command(:invite, "Invite a user to this channel", server_id: DISCORD_SERVER_ID) do |cmd|
-  cmd.user("user", "The user you'd like to invite to this channel", required: true)
-end
-
-bot.application_command(:invite) do |event|
-  channel = event.channel
-  user_id = event.options["user"]
-  user_response = Discordrb::API::User.resolve(bot.token, user_id)
-  user_data = JSON.parse(user_response)
-  user = Discordrb::User.new(user_data, bot)
-
-  if channel.parent_id != PRIVATE_CATEGORY_ID
-    event.respond(content: "Sorry! You can only invite users to private identity spaces.", ephemeral: true)
-    return
+  components = Discordrb::Components::View.new do |view|
+    view.row do |row|
+      row.button(label: "Invite", style: :primary, custom_id: "invite_to_private:#{event.user.id}", emoji: {name: "✅"})
+    end
   end
 
-  channel.define_overwrite(user, 1024, 0)
+  event.bot.send_message(channel.id, request, false, nil, nil, nil, nil, components)
 
-  event.respond(content: "Okay, I've added #{user.mention} to this channel!", ephemeral: true)
+  # Update the original message to let the user know their request was sent and
+  # remove the button to prevent duplicate requests.
+  event.update_message(content: "Your request to join #{channel.mention} has been sent! Please give the community some time to respond.", ephemeral: true)
+end
+
+# The button handler for adding users to protected channels.
+bot.button(custom_id: /^invite_to_private:/) do |event|
+  user_id = event.interaction.button.custom_id.split(":").last.to_i
+  user_response = Discordrb::API::User.resolve(bot.token, user_id)
+  user_data = JSON.parse(user_response)
+  user = Discordrb::User.new(user_data, event.bot)
+
+  event.channel.define_overwrite(user, 1024, 0)
+
+  event.update_message(content: "Welcome to the channel, #{user.mention}!")
 end
 
 bot.run
