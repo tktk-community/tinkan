@@ -57,7 +57,7 @@ bot.application_command(:"list-private") do |event|
   end
 
   channels = channels.select do |channel|
-    channel.permission_overwrites.values.none? { |overwrite| overwrite.type == :member && overwrite.allow == 1024 && overwrite.id == event.user.id }
+    channel.permission_overwrites.values.none? { |overwrite| overwrite.type == :member && overwrite.id == event.user.id }
   end
 
   if channels.empty?
