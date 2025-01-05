@@ -49,26 +49,22 @@ module TinKan
 
       archiveable_channels_in(server).each do |channel|
         next unless channel.name == "channel-to-archive"
-        puts "Checking channel ##{channel.name}..."
 
         # Fetch the last few messages in the channel to account for the fact that the
         # most recent message might be the 30-day warning from the bot.
         messages = channel.history(5)
         last_user_message = messages.find { |message| message.author.id != BOT_USER_ID }
+        warning_already_sent = messages.first&.author&.id == BOT_USER_ID
 
         channel_last_active_at = last_user_message&.timestamp || channel.creation_time
 
         if channel_last_active_at < sixty_days_ago || channel.name == "channel-to-archive"
-          puts "Channel ##{channel.name} was last active more than 60 days ago. Archiving..."
-
           send_message(channel.id, "This channel has now been quiet for more than 60 days. To keep things tidy, I'll be marking it as read-only and moving it to the `Archive` category. If you'd like us to bring it back, please let us know in <##{META_CHANNEL_ID}>!")
 
           channel.category = archive_category
           channel.sync_overwrites
-        elsif channel_last_active_at < thirty_days_ago
-          puts "Channel ##{channel.name} was last active more than 30 days ago. Sending warning..."
-
-          send_message(channel.id, "Hello! This channel has been quiet for 30 days. In the TKTK Discord, we automatically archive channels that are inactive for **60 days**. Tidying up our channels makes it easier for people to find their way around. No content is lost when archiving channels, and we can always bring them back if they're needed again. If you'd like to keep this channel active, please start an on-topic conversation and we'll reset the timer. Thanks!")
+        elsif channel_last_active_at < thirty_days_ago && !warning_already_sent
+          send_message(channel.id, "Hello! This channel has been quiet for 30 days. We automatically archive channels that are inactive for **60 days**, since tidying up our channels makes it easier for people to find their way around. No content is lost when archiving channels, and we can always bring them back if they're needed again. If you'd like to keep this channel active, please start an on-topic conversation and we'll reset the timer. Thanks!")
         end
 
         sleep(1) # Simple rate limit handling
