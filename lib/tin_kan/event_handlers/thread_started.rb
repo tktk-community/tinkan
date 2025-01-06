@@ -13,7 +13,7 @@ module TinKan
           referenced_message = event.message.instance_variable_get(:@message_reference)
 
           # Fetch the message directly before the thread started message.
-          logs = API::Channel.messages(bot.token, event.channel.id, 1, event.message.id)
+          logs = Discordrb::API::Channel.messages(bot.token, event.channel.id, 1, event.message.id)
           previous_message_data = JSON.parse(logs).first
 
           if previous_message_data.dig("thread", "id") == referenced_message["channel_id"]

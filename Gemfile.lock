@@ -2,6 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     ast (2.4.2)
+    base64 (0.2.0)
     discordrb (3.5.0)
       discordrb-webhooks (~> 3.5.0)
       ffi (>= 1.9.24)
@@ -101,6 +102,7 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
+  base64
   discordrb
   standardrb
 
