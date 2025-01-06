@@ -3,6 +3,7 @@ require_relative "commands/mods"
 require_relative "commands/list_private"
 require_relative "event_handlers/join_private"
 require_relative "event_handlers/invite_to_private"
+require_relative "event_handlers/thread_started"
 
 module TinKan
   class Bot < Discordrb::Bot
@@ -23,7 +24,7 @@ module TinKan
     ]
 
     def initialize
-      super(token: DISCORD_TOKEN, intents: [:server_messages], ignore_bots: true)
+      super(token: DISCORD_TOKEN, intents: [:server_messages, (1 << 15)], ignore_bots: true)
     end
 
     def run
@@ -31,6 +32,7 @@ module TinKan
       Commands::ListPrivate.register(self, server_id: DISCORD_SERVER_ID)
       EventHandlers::JoinPrivate.register(self)
       EventHandlers::InviteToPrivate.register(self)
+      EventHandlers::ThreadStarted.register(self)
 
       Kernel.at_exit { stop }
 
