@@ -48,8 +48,6 @@ module TinKan
       archive_category = Discordrb::Channel.new(archive_category_response, self, server)
 
       archiveable_channels_in(server).each do |channel|
-        next unless channel.name == "channel-to-archive"
-
         # Fetch the last few messages in the channel to account for the fact that the
         # most recent message might be the 30-day warning from the bot.
         messages = channel.history(5)
@@ -58,7 +56,7 @@ module TinKan
 
         channel_last_active_at = last_user_message&.timestamp || channel.creation_time
 
-        if channel_last_active_at < sixty_days_ago || channel.name == "channel-to-archive"
+        if channel_last_active_at < sixty_days_ago
           send_message(channel.id, "This channel has now been quiet for more than 60 days. To keep things tidy, I'll be marking it as read-only and moving it to the `Archive` category. If you'd like us to bring it back, please let us know in <##{META_CHANNEL_ID}>!")
 
           channel.category = archive_category
