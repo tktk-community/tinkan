@@ -40,8 +40,8 @@ module TinKan
     end
 
     def archive_inactive_channels!
-      thirty_days_ago = Time.now - 30 * 24 * 60 * 60
-      sixty_days_ago = Time.now - 60 * 24 * 60 * 60
+      three_months_ago = Time.now - 90 * 24 * 60 * 60
+      six_months_ago = Time.now - 180 * 24 * 60 * 60
 
       server_response = JSON.parse(Discordrb::API::Server.resolve(token, DISCORD_SERVER_ID))
       server = Discordrb::Server.new(server_response, self)
@@ -58,13 +58,13 @@ module TinKan
 
         channel_last_active_at = last_user_message&.timestamp || channel.creation_time
 
-        if channel_last_active_at < sixty_days_ago
-          send_message(channel.id, "This channel has now been quiet for more than 60 days. To keep things tidy, I'll be marking it as read-only and moving it to the `Archive` category. If you'd like us to bring it back, please let us know in <##{META_CHANNEL_ID}>!")
+        if channel_last_active_at < six_months_ago
+          send_message(channel.id, "This channel has now been quiet for more than 6 months. To keep things tidy, I'll be marking it as read-only and moving it to the `Archive` category. If you'd like us to bring it back, please let us know in <##{META_CHANNEL_ID}>!")
 
           channel.category = archive_category
           channel.sync_overwrites
-        elsif channel_last_active_at < thirty_days_ago && !warning_already_sent
-          send_message(channel.id, "Hello! This channel has been quiet for 30 days. We automatically archive channels that are inactive for **60 days**, since tidying up our channels makes it easier for people to find their way around. No content is lost when archiving channels, and we can always bring them back if they're needed again. If you'd like to keep this channel active, please start an on-topic conversation and we'll reset the timer. Thanks!")
+        elsif channel_last_active_at < three_months_ago && !warning_already_sent
+          send_message(channel.id, "Hello! This channel has been quiet for 3 months. We automatically archive channels that are inactive for **6 months**, since tidying up our channels makes it easier for people to find their way around. No content is lost when archiving channels, and we can always bring them back if they're needed again. If you'd like to keep this channel active, please start an on-topic conversation and we'll reset the timer. Thanks!")
         end
 
         sleep(1) # Simple rate limit handling
